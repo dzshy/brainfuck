@@ -11,16 +11,39 @@
     fprintf(stderr, s"\n", ##__VA_ARGS__); \
 } while(0)
 
-uint8_t *databuf;
-static const int INIT_SZ = 1024;
+uint8_t *pbuf;
+uint8_t *nbuf;
+long nsz, psz;
+static const int INIT_SZ = 128;
 
-void checkright(long pointer, long cur_data_sz) {
-    if (pointer == cur_data_sz - 1) {
-        databuf = realloc(databuf, cur_data_sz * 2);
-        memset(databuf + cur_data_sz, 0, cur_data_sz);
-        cur_data_sz *= 2;
+void ensurespc_impl(uint8_t** buf, long *cursz, long ptr) {
+    if (ptr > *cursz) {
+        *buf = realloc(*buf, ptr * 2);
+        memset((*buf) + (*cursz), 0, 2 * ptr - (*cursz));
+        *cursz = ptr * 2;
     }
 }
+
+void ensurespc(long ptr) {
+    if (ptr >= 0) {
+        ensurespc_impl(&pbuf, &psz, ptr);        
+    } else {
+        ensurespc_impl(&nbuf, &nsz, -ptr);
+    }
+}
+
+uint8_t getdata(long ptr) {
+    ensurespc(ptr);
+    if (ptr >= 0) return pbuf[ptr];
+    else return nbuf[-ptr];
+}
+
+void setdata(long ptr, uint8_t val) {
+    ensurespc(ptr);
+    if (ptr >= 0) pbuf[ptr] = val;
+    else nbuf[-ptr] = val;
+}
+
 
 long move2right(char *prog, long p, long fsz) {
     int count = 1;
@@ -45,41 +68,41 @@ long move2left(char *prog, long p) {
 void interp(char *prog, long prog_sz) {
     long prog_p = 0;
     long data_p = 0;
-    long cur_data_sz = INIT_SZ;
-    databuf = malloc(INIT_SZ);
-    memset(databuf, 0, INIT_SZ);
+    nbuf = malloc(INIT_SZ);
+    pbuf = malloc(INIT_SZ);
+    nsz = INIT_SZ;
+    psz = INIT_SZ;
+    memset(nbuf, 0, INIT_SZ);
+    memset(pbuf, 0, INIT_SZ);
+
     while (prog_p < prog_sz) {
         switch (prog[prog_p]) {
         case '>':
-            checkright(data_p, cur_data_sz);
             data_p++;
             break;
         case '<':
-            if (data_p == 0) {
-                LOGGER("error, left out of index");
-                exit(EXIT_FAILURE);
-            }
             data_p--;
             break;
         case '+':
-            databuf[data_p]++;
+            setdata(data_p, getdata(data_p) + 1);
             break;
         case '-':
-            databuf[data_p]--;
+            setdata(data_p, getdata(data_p) - 1);
             break;
         case '.':
-            putchar(databuf[data_p]);
+            putchar(getdata(data_p));
+            fflush(stdout);
             break;
         case ',':
-            databuf[data_p] = getchar();
+            setdata(data_p, getchar());
             break;
         case '[':
-            if (databuf[data_p] == 0) {
+            if (getdata(data_p) == 0) {
                 prog_p = move2right(prog, prog_p, prog_sz);
             }
             break;
         case ']':
-            if (databuf[data_p] != 0) {
+            if (getdata(data_p) != 0) {
                 prog_p = move2left(prog, prog_p);
             }
             break;
@@ -110,5 +133,4 @@ int main(int argc, char** argv) {
     interp(prog, filesz);
     return EXIT_SUCCESS;
 }
-
 

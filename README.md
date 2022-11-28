@@ -8,14 +8,14 @@ A brainfuck interpreter
 make
 ```
 
-## Run `Hello World` Test
+## Hello World
 
 ```
-make run
+./brainfuck ./helloworld.bf
 ```
 
-## Run Program
+## Calculator
 
 ```
-cat input | ./brainfuck ./prog.brainfuck
+echo "1+1=" | ./brainfuck calc/calc.bf
 ```

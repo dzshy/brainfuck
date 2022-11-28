@@ -1,5 +1,5 @@
-brainfuck:
+brainfuck: brainfuck.c
 	gcc brainfuck.c -o brainfuck
 
 run: brainfuck
-	./brainfuck test.brainfuck
+	./brainfuck helloworld.bf
