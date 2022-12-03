@@ -14,8 +14,11 @@ make
 ./brainfuck ./helloworld.bf
 ```
 
-## Calculator
+## Lisp!
 
 ```
-echo "1+1=" | ./brainfuck calc/calc.bf
+wget https://raw.githubusercontent.com/shinh/bflisp/master/bflisp.bf
+echo "(car (quote (a b c)))" | time ./brainfuck bflisp.bf
 ```
+
+WARNING: It's very slow, may takes ~10 minutes to run a `(car (quote (a b c)))`.

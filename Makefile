@@ -1,5 +1,5 @@
 brainfuck: brainfuck.c
-	gcc brainfuck.c -o brainfuck
+	gcc brainfuck.c rbtree.c -o brainfuck
 
 run: brainfuck
 	./brainfuck helloworld.bf
