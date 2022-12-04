@@ -3,3 +3,6 @@ brainfuck: brainfuck.c
 
 run: brainfuck
 	./brainfuck helloworld.bf
+
+clean:
+	-rm brainfuck
