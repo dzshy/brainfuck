@@ -7,7 +7,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "rbtree.h"
+#include "htable.h"
+#include "crc32.h"
 
 #define LOGGER(s, ...) do {\
     fprintf(stderr, s"\n", ##__VA_ARGS__); \
@@ -19,12 +20,20 @@ long nsz, psz;
 static const int INIT_SZ = 128;
 
 typedef struct {
-    RbNode tree;
     long key;
     long val;
 } JmpTblEntry;
 
-RbTree jmptbl = {0};
+static bool jmptbl_eq(void *x, void *y) {
+    long *a = x, *b = y;
+    return *a == *b;
+}
+
+static uint32_t jmptbl_hash(void *k) {
+    return crc32(0, k, sizeof(long));
+}
+
+HTable jmptbl;
 
 struct listnode {
     struct listnode *next;
@@ -53,36 +62,25 @@ void stack_pop(Stack *s) {
     s->head = next;
 }
 
-int longcmp(void *x, void *y) {
-    long *a = x, *b = y;
-    if (*a < *b) return 1;
-    if (*a > *b) return -1;
-    return 0;
-}
-
 void buildjmptable(char* buf, long len) {
     Stack s = {0};
-    jmptbl.cmp = longcmp;
+    htable_init(&jmptbl, sizeof(JmpTblEntry), -1, jmptbl_hash, jmptbl_eq);
     for (long i = 0; i < len; i++) {
         if (buf[i] == '[') {
             stack_push(&s, i);
         } else if (buf[i] == ']') {
             long j = *stack_top(&s);
             stack_pop(&s);
-            JmpTblEntry *e1 = malloc(sizeof(JmpTblEntry));
-            JmpTblEntry *e2 = malloc(sizeof(JmpTblEntry));
-            e1->key = i;
-            e1->val = j;
-            e2->key = j;
-            e2->val = i;
-            rbtree_insert(&jmptbl, e1);
-            rbtree_insert(&jmptbl, e2);
+            JmpTblEntry e1 = {i, j};
+            JmpTblEntry e2 = {j, i};
+            htable_insert(&jmptbl, &e1);
+            htable_insert(&jmptbl, &e2);
         }
     }
 }
 
 static long tbllookup(long pos) {
-    JmpTblEntry *iter = rbtree_find(&jmptbl, &pos);
+    JmpTblEntry *iter = htable_find(&jmptbl, &pos);
     return iter->val;
 }
 
@@ -177,7 +175,17 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
     long filesz = fst.st_size;
-    char *prog = (char*)mmap(NULL, filesz, PROT_READ, MAP_SHARED, fd, 0);
+    char *prog = malloc(filesz);
+    FILE* fp = fdopen(fd, "r");
+    if (fp == NULL) {
+        LOGGER("error opening file");
+        exit(-1);
+    }
+    size_t read = fread(prog, 1, filesz, fp);
+    if (read < filesz) {
+        LOGGER("erro reading");
+        exit(-1);
+    }
     buildjmptable(prog, filesz);
     interp(prog, filesz);
     return EXIT_SUCCESS;
