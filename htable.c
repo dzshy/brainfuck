@@ -4,7 +4,7 @@
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
  * copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
@@ -24,11 +24,13 @@
 #define HTFL_VAL 1
 #define HTFL_DEL 2
 
-static void* htable_end(HTable *ht) {
+static void *htable_end(HTable *ht)
+{
     return ht->buf + ht->cap * (ht->elemsz + 1);
 }
 
-static void rebuild(HTable *ht) {
+static void rebuild(HTable *ht)
+{
     HTable newht;
     htable_init(&newht, ht->elemsz, ht->size * 8, ht->hash, ht->eq);
     void *iter = htable_begin(ht);
@@ -40,17 +42,15 @@ static void rebuild(HTable *ht) {
     *ht = newht;
 }
 
-static uint8_t getflag(void *iter) {
-    return *(uint8_t*)(iter - 1);
-}
+static uint8_t getflag(void *iter) { return *(uint8_t *)(iter - 1); }
 
-static void setflag(void *iter, uint8_t flag) {
-    *(uint8_t *)(iter - 1) = flag;
-}
+static void setflag(void *iter, uint8_t flag) { *(uint8_t *)(iter - 1) = flag; }
 
-void htable_init(HTable *ht, int elemsz, int cap, uint32_t (*hash)(void*),
-                 bool (*eq)(void*, void*)) {
-    if (cap < 16) cap = 16;
+void htable_init(HTable *ht, int elemsz, int cap, uint32_t (*hash)(void *),
+                 bool (*eq)(void *, void *))
+{
+    if (cap < 16)
+        cap = 16;
     ht->buf = malloc(cap * (elemsz + 1));
     memset(ht->buf, 0, cap * (elemsz + 1));
     ht->size = 0;
@@ -62,7 +62,8 @@ void htable_init(HTable *ht, int elemsz, int cap, uint32_t (*hash)(void*),
     ht->eq = eq;
 }
 
-bool htable_insert(HTable *ht, void* elem) {
+bool htable_insert(HTable *ht, void *elem)
+{
     if (ht->taken + 1 > ht->cap / 4) {
         rebuild(ht);
     }
@@ -71,7 +72,8 @@ bool htable_insert(HTable *ht, void* elem) {
     int hashcode = ht->hash(elem) % ht->cap;
     void *pos = ht->buf + hashcode * (ht->elemsz + 1) + 1;
     while (getflag(pos) != HTFL_NUL) {
-        if (getflag(pos) == HTFL_VAL && ht->eq(pos, elem)) return false;
+        if (getflag(pos) == HTFL_VAL && ht->eq(pos, elem))
+            return false;
         pos += ht->elemsz + 1;
         if (pos >= htable_end(ht)) { // arrived end, restart from beginning
             pos = ht->buf + 1;
@@ -84,7 +86,8 @@ bool htable_insert(HTable *ht, void* elem) {
     }
 }
 
-void htable_del(HTable *ht, void* iter) {
+void htable_del(HTable *ht, void *iter)
+{
     ht->size--;
     setflag(iter, HTFL_DEL);
     if (iter == ht->begin) {
@@ -92,11 +95,13 @@ void htable_del(HTable *ht, void* iter) {
     }
 }
 
-void* htable_find(HTable *ht, void* elem) {
+void *htable_find(HTable *ht, void *elem)
+{
     int hashcode = ht->hash(elem) % ht->cap;
     void *pos = ht->buf + hashcode * (ht->elemsz + 1) + 1;
     while (getflag(pos) != HTFL_NUL) {
-        if (getflag(pos) == HTFL_VAL && ht->eq(pos, elem)) return pos;
+        if (getflag(pos) == HTFL_VAL && ht->eq(pos, elem))
+            return pos;
         pos += ht->elemsz + 1;
         if (pos >= htable_end(ht)) { // arrived end, restart from beginning
             pos = ht->buf + 1;
@@ -105,11 +110,10 @@ void* htable_find(HTable *ht, void* elem) {
     return NULL;
 }
 
-void* htable_begin(HTable *ht) {
-    return ht->begin;
-}
+void *htable_begin(HTable *ht) { return ht->begin; }
 
-void* htable_next(HTable *ht, void *iter) {
+void *htable_next(HTable *ht, void *iter)
+{
     void *pos = iter;
     pos += ht->elemsz + 1;
     while (getflag(pos) != HTFL_VAL) {
@@ -120,5 +124,3 @@ void* htable_next(HTable *ht, void *iter) {
     }
     return pos;
 }
-
-

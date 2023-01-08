@@ -4,7 +4,7 @@
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
  * copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
@@ -26,21 +26,20 @@ typedef struct {
     int size;
     int cap;
     int taken;
-    void* begin;
+    void *begin;
     int elemsz;
-    uint32_t (*hash)(void*);
-    bool (*eq)(void*, void*);
+    uint32_t (*hash)(void *);
+    bool (*eq)(void *, void *);
 } HTable;
 
-void htable_init(HTable *ht, int elemsz, int cap, uint32_t (*hash)(void*),
-                 bool (*eq)(void*, void*));
-bool htable_insert(HTable *ht, void* elem);
-void htable_del(HTable *ht, void* iter);
+void htable_init(HTable *ht, int elemsz, int cap, uint32_t (*hash)(void *),
+                 bool (*eq)(void *, void *));
+bool htable_insert(HTable *ht, void *elem);
+void htable_del(HTable *ht, void *iter);
 
 // return a iterator
-void* htable_find(HTable *ht, void* elem);
-void* htable_begin(HTable *ht);
-void* htable_next(HTable *ht, void *iter);
+void *htable_find(HTable *ht, void *elem);
+void *htable_begin(HTable *ht);
+void *htable_next(HTable *ht, void *iter);
 
 #endif
-

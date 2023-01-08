@@ -4,7 +4,7 @@
  * any purpose with or without fee is hereby granted, provided that the
  * above copyright notice and this permission notice appear in all
  * copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
@@ -15,21 +15,22 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 
-#include "htable.h"
 #include "crc32.h"
+#include "htable.h"
 
-#define LOGGER(s, ...) do {\
-    fprintf(stderr, s"\n", ##__VA_ARGS__); \
-} while(0)
+#define LOGGER(s, ...)                                                         \
+    do {                                                                       \
+        fprintf(stderr, s "\n", ##__VA_ARGS__);                                \
+    } while (0)
 
 uint8_t *pbuf;
 uint8_t *nbuf;
@@ -41,14 +42,13 @@ typedef struct {
     long val;
 } JmpTblEntry;
 
-static bool jmptbl_eq(void *x, void *y) {
+static bool jmptbl_eq(void *x, void *y)
+{
     long *a = x, *b = y;
     return *a == *b;
 }
 
-static uint32_t jmptbl_hash(void *k) {
-    return crc32(0, k, sizeof(long));
-}
+static uint32_t jmptbl_hash(void *k) { return crc32(0, k, sizeof(long)); }
 
 HTable jmptbl;
 
@@ -60,26 +60,32 @@ typedef struct {
     struct listnode *head;
 } Stack;
 
-void stack_push(Stack *s, long val) {
+void stack_push(Stack *s, long val)
+{
     struct listnode *n = malloc(sizeof(struct listnode));
     n->next = s->head;
     n->val = val;
     s->head = n;
 }
 
-long* stack_top(Stack *s) {
-    if (s->head == NULL) return NULL;
+long *stack_top(Stack *s)
+{
+    if (s->head == NULL)
+        return NULL;
     return &(s->head->val);
 }
 
-void stack_pop(Stack *s) {
-    if (s->head == NULL) return;
+void stack_pop(Stack *s)
+{
+    if (s->head == NULL)
+        return;
     struct listnode *next = s->head->next;
     free(s->head);
     s->head = next;
 }
 
-void buildjmptable(char* buf, long len) {
+void buildjmptable(char *buf, long len)
+{
     Stack s = {0};
     htable_init(&jmptbl, sizeof(JmpTblEntry), -1, jmptbl_hash, jmptbl_eq);
     for (long i = 0; i < len; i++) {
@@ -96,12 +102,14 @@ void buildjmptable(char* buf, long len) {
     }
 }
 
-static long tbllookup(long pos) {
+static long tbllookup(long pos)
+{
     JmpTblEntry *iter = htable_find(&jmptbl, &pos);
     return iter->val;
 }
 
-void ensurespc_impl(uint8_t** buf, long *cursz, long ptr) {
+void ensurespc_impl(uint8_t **buf, long *cursz, long ptr)
+{
     if (ptr > *cursz) {
         *buf = realloc(*buf, ptr * 2);
         memset((*buf) + (*cursz), 0, 2 * ptr - (*cursz));
@@ -109,27 +117,35 @@ void ensurespc_impl(uint8_t** buf, long *cursz, long ptr) {
     }
 }
 
-void ensurespc(long ptr) {
+void ensurespc(long ptr)
+{
     if (ptr >= 0) {
-        ensurespc_impl(&pbuf, &psz, ptr);        
+        ensurespc_impl(&pbuf, &psz, ptr);
     } else {
         ensurespc_impl(&nbuf, &nsz, -ptr);
     }
 }
 
-uint8_t getdata(long ptr) {
+uint8_t getdata(long ptr)
+{
     ensurespc(ptr);
-    if (ptr >= 0) return pbuf[ptr];
-    else return nbuf[-ptr];
+    if (ptr >= 0)
+        return pbuf[ptr];
+    else
+        return nbuf[-ptr];
 }
 
-void setdata(long ptr, uint8_t val) {
+void setdata(long ptr, uint8_t val)
+{
     ensurespc(ptr);
-    if (ptr >= 0) pbuf[ptr] = val;
-    else nbuf[-ptr] = val;
+    if (ptr >= 0)
+        pbuf[ptr] = val;
+    else
+        nbuf[-ptr] = val;
 }
 
-void interp(char *prog, long prog_sz) {
+void interp(char *prog, long prog_sz)
+{
     long prog_p = 0;
     long data_p = 0;
     nbuf = malloc(INIT_SZ);
@@ -176,7 +192,8 @@ void interp(char *prog, long prog_sz) {
     }
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
     if (argc < 2) {
         LOGGER("invalid args");
         return EXIT_FAILURE;
@@ -193,7 +210,7 @@ int main(int argc, char** argv) {
     }
     long filesz = fst.st_size;
     char *prog = malloc(filesz);
-    FILE* fp = fdopen(fd, "r");
+    FILE *fp = fdopen(fd, "r");
     if (fp == NULL) {
         LOGGER("error opening file");
         exit(-1);
@@ -207,4 +224,3 @@ int main(int argc, char** argv) {
     interp(prog, filesz);
     return EXIT_SUCCESS;
 }
-
